@@ -220,4 +220,3 @@ def download_clip(url: str, start: str = "0:00", end: str = "1:00", quality: str
     fn = f"{re.sub(r'\\s+','_',safe)}_clip.mp4"
     if bg: bg.add_task(clean_old)
     return FileResponse(path=str(dl), media_type="video/mp4", filename=fn, headers={"Content-Disposition":f'attachment; filename="{fn}"'})
-    
