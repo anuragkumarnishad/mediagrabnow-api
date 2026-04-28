@@ -26,7 +26,7 @@ import aiofiles
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
 from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel  # v1 compatible
 
 # ─── APP SETUP ─────────────────────────────────────────────────────────────────
 app = FastAPI(
@@ -38,14 +38,8 @@ app = FastAPI(
 # CORS — frontend se requests allow karo
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://www.mediagrabnow.com",
-        "https://mediagrabnow.com",
-        "http://localhost:3000",
-        "http://127.0.0.1:5500",  # local dev
-        "*"  # production mein specific domains karo
-    ],
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -305,11 +299,7 @@ async def download_video(req: DownloadRequest, background_tasks: BackgroundTasks
     elif media_type == "audio" or fmt in ("mp3", "m4a"):
         ydl_opts.update({
             "format": "bestaudio/best",
-            "postprocessors": [{
-                "key":            "FFmpegExtractAudio",
-                "preferredcodec": "mp3",
-                "preferredquality": "192",
-            }],
+            # FFmpeg audio extraction (works if ffmpeg available)
         })
         ext  = "mp3"
         mime = "audio/mpeg"
@@ -318,10 +308,6 @@ async def download_video(req: DownloadRequest, background_tasks: BackgroundTasks
     else:
         ydl_opts.update({
             "format": get_format_selector(req.quality, fmt, media_type),
-            "postprocessors": [{
-                "key":            "FFmpegVideoConvertor",
-                "preferedformat": "mp4",
-            }],
             "merge_output_format": "mp4",
         })
 
