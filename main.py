@@ -96,7 +96,22 @@ async def get_info(request: Request):
         raise HTTPException(400, "Invalid URL")
 
     try:
-        with yt_dlp.YoutubeDL({"quiet":True,"skip_download":True,"noplaylist":True}) as ydl:
+        ydl_opts = {
+            "quiet": True,
+            "skip_download": True,
+            "noplaylist": True,
+            "cookiesfrombrowser": None,
+            "http_headers": {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept-Language": "en-US,en;q=0.9",
+            },
+            "extractor_args": {
+                "youtube": {
+                    "player_client": ["web", "android"],
+                }
+            },
+        }
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
     except Exception as e:
         raise HTTPException(422, str(e)[:300])
@@ -171,15 +186,29 @@ async def download_video(request: Request, bg: BackgroundTasks):
     fid = str(uuid.uuid4())[:8]
     tpl = str(TEMP_DIR / fid) + ".%(ext)s"
 
+    # Common opts — bot detection fix
+    base_opts = {
+        "quiet": True,
+        "noplaylist": True,
+        "http_headers": {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept-Language": "en-US,en;q=0.9",
+        },
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["web", "android"],
+            }
+        },
+    }
+
     if mtype == "thumbnail" or fmt == "jpg":
-        opts = {"quiet":True,"skip_download":True,"writethumbnail":True,"outtmpl":tpl}
+        opts = {**base_opts, "skip_download":True,"writethumbnail":True,"outtmpl":tpl}
         ext, mime = "jpg", "image/jpeg"
     elif mtype == "audio" or fmt in ("mp3","m4a"):
-        opts = {"quiet":True,"format":"bestaudio/best","outtmpl":tpl,"noplaylist":True}
+        opts = {**base_opts, "format":"bestaudio/best","outtmpl":tpl}
         ext, mime = "mp3", "audio/mpeg"
     else:
-        opts = {"quiet":True,"format":get_fmt(qual,mtype),"outtmpl":tpl,
-                "noplaylist":True,"merge_output_format":"mp4"}
+        opts = {**base_opts, "format":get_fmt(qual,mtype),"outtmpl":tpl,"merge_output_format":"mp4"}
         ext, mime = "mp4", "video/mp4"
 
     try:
@@ -230,10 +259,16 @@ async def download_clip(request: Request, bg: BackgroundTasks):
     if es <= ss: raise HTTPException(400, "End must be after start")
 
     fid  = str(uuid.uuid4())[:8]
-    opts = {"quiet":True,"format":get_fmt(qual,"video"),
-            "outtmpl":str(TEMP_DIR/fid)+".%(ext)s",
-            "noplaylist":True,"merge_output_format":"mp4",
-            "postprocessor_args":{"ffmpeg":["-ss",str(ss),"-t",str(es-ss)]}}
+    opts = {
+        "quiet":True,"format":get_fmt(qual,"video"),
+        "outtmpl":str(TEMP_DIR/fid)+".%(ext)s",
+        "noplaylist":True,"merge_output_format":"mp4",
+        "postprocessor_args":{"ffmpeg":["-ss",str(ss),"-t",str(es-ss)]},
+        "http_headers":{
+            "User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        },
+        "extractor_args":{"youtube":{"player_client":["web","android"]}},
+    }
 
     try:
         with yt_dlp.YoutubeDL(opts) as ydl:
