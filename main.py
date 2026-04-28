@@ -100,16 +100,19 @@ async def get_info(request: Request):
             "quiet": True,
             "skip_download": True,
             "noplaylist": True,
-            "cookiesfrombrowser": None,
             "http_headers": {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
                 "Accept-Language": "en-US,en;q=0.9",
             },
             "extractor_args": {
                 "youtube": {
-                    "player_client": ["web", "android"],
+                    "player_client": ["tv_embedded", "web_embedded", "android"],
+                    "skip": ["hls", "dash"],
                 }
             },
+            "age_limit": 99,
+            **({"cookiefile": os.path.join(os.path.dirname(__file__), "cookies.txt")} 
+               if os.path.exists(os.path.join(os.path.dirname(__file__), "cookies.txt")) else {}),
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
@@ -186,7 +189,11 @@ async def download_video(request: Request, bg: BackgroundTasks):
     fid = str(uuid.uuid4())[:8]
     tpl = str(TEMP_DIR / fid) + ".%(ext)s"
 
-    # Common opts — bot detection fix
+    # Cookie file path (YouTube login cookies)
+    import os
+    cookie_file = os.path.join(os.path.dirname(__file__), "cookies.txt")
+    
+    # Common opts — YouTube bot fix
     base_opts = {
         "quiet": True,
         "noplaylist": True,
@@ -196,9 +203,12 @@ async def download_video(request: Request, bg: BackgroundTasks):
         },
         "extractor_args": {
             "youtube": {
-                "player_client": ["web", "android"],
+                "player_client": ["tv_embedded", "web_embedded", "android"],
+                "skip": ["hls", "dash"],
             }
         },
+        "age_limit": 99,
+        **({"cookiefile": cookie_file} if os.path.exists(cookie_file) else {}),
     }
 
     if mtype == "thumbnail" or fmt == "jpg":
