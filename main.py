@@ -372,11 +372,7 @@ async def download_clip(request: Request, bg: BackgroundTasks):
     }
 
     if fmt == "mp3":
-        opts["postprocessors"] = [{
-            "key": "FFmpegExtractAudio",
-            "preferredcodec": "mp3",
-            "preferredquality": "192",
-        }]
+        opts["format"] = "bestaudio[ext=m4a]/bestaudio/best" 
 
     try:
         with yt_dlp.YoutubeDL(opts) as ydl:
