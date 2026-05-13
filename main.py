@@ -258,8 +258,12 @@ async def download_video(request: Request, bg: BackgroundTasks):
     mtype = (body.get("type") or "video").lower()
     qual  = (body.get("quality") or "720p").strip()
 
+    log.info(f"Download request: url={url[:80]}, quality={qual}, type={mtype}, format={fmt}")
+
+    if not url:
+        raise HTTPException(400, "URL is empty — please paste a valid video URL")
     if not url.startswith("http"):
-        raise HTTPException(400, "Invalid URL")
+        raise HTTPException(400, f"Invalid URL: '{url[:50]}' — must start with http")
 
     fid = str(uuid.uuid4())[:8]
     tpl = str(TEMP_DIR / fid) + ".%(ext)s"
