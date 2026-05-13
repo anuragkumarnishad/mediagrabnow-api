@@ -25,6 +25,24 @@ from fastapi.middleware.cors import CORSMiddleware
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("mgn")
 
+# ── PO Token Cache ────────────────────────────────────────────────
+_po_token   = None
+_visitor_data = None
+
+def get_po_token():
+    """Generate fresh PO token for YouTube"""
+    global _po_token, _visitor_data
+    try:
+        import potoken_generator.main as ptg
+        result = ptg.get_po_token()
+        _po_token     = result.get("poToken")
+        _visitor_data = result.get("visitorData")
+        log.info(f"PO Token generated: {str(_po_token)[:20]}...")
+        return _po_token, _visitor_data
+    except Exception as e:
+        log.warning(f"PO Token generation failed: {e}")
+        return None, None
+
 # ── App ──────────────────────────────────────────────────────────
 app = FastAPI(title="MediaGrabNow API", version="2.0.0")
 app.add_middleware(
@@ -102,17 +120,25 @@ def base_opts() -> dict:
         "quiet": True,
         "no_warnings": True,
         "noplaylist": True,
+        "geo_bypass": True,
+        "geo_bypass_country": "IN",
         "http_headers": {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-            "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Language": "en-IN,en;q=0.9,hi;q=0.8",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-            "Referer": "https://www.google.com/",
+            "Referer": "https://www.google.co.in/",
+            "X-Forwarded-For": "157.32.0.1",
         },
         "extractor_args": {
             "youtube": {
                 "player_client": ["tv_embedded", "web_embedded", "android"],
             }
         },
+        "geo_bypass": True,
+        "geo_bypass_country": "US",
+        "socket_timeout": 30,
+        "retries": 3,
+        "fragment_retries": 3,
     }
     # Cookies add karo agar file hai
     if COOKIE_FILE.exists():
@@ -149,10 +175,17 @@ def root():
 @app.get("/health")
 def health():
     return {
-        "status": "ok",
-        "cookies": COOKIE_FILE.exists(),
+        "status":   "ok",
+        "cookies":  COOKIE_FILE.exists(),
+        "po_token": bool(_po_token),
         "temp_dir": str(TEMP_DIR),
     }
+
+@app.post("/refresh-token")
+def refresh_token():
+    """Manually refresh PO token"""
+    tok, vis = get_po_token()
+    return {"success": bool(tok), "po_token": str(tok)[:20]+"..." if tok else None}
 
 # ── /info — Video info + formats ──────────────────────────────────
 @app.post("/info")
