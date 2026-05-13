@@ -26,22 +26,8 @@ logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("mgn")
 
 # ── PO Token Cache ────────────────────────────────────────────────
-_po_token   = None
+_po_token     = None
 _visitor_data = None
-
-def get_po_token():
-    """Generate fresh PO token for YouTube"""
-    global _po_token, _visitor_data
-    try:
-        import potoken_generator.main as ptg
-        result = ptg.get_po_token()
-        _po_token     = result.get("poToken")
-        _visitor_data = result.get("visitorData")
-        log.info(f"PO Token generated: {str(_po_token)[:20]}...")
-        return _po_token, _visitor_data
-    except Exception as e:
-        log.warning(f"PO Token generation failed: {e}")
-        return None, None
 
 # ── App ──────────────────────────────────────────────────────────
 app = FastAPI(title="MediaGrabNow API", version="2.0.0")
@@ -175,17 +161,10 @@ def root():
 @app.get("/health")
 def health():
     return {
-        "status":   "ok",
-        "cookies":  COOKIE_FILE.exists(),
-        "po_token": bool(_po_token),
+        "status":  "ok",
+        "cookies": COOKIE_FILE.exists(),
         "temp_dir": str(TEMP_DIR),
     }
-
-@app.post("/refresh-token")
-def refresh_token():
-    """Manually refresh PO token"""
-    tok, vis = get_po_token()
-    return {"success": bool(tok), "po_token": str(tok)[:20]+"..." if tok else None}
 
 # ── /info — Video info + formats ──────────────────────────────────
 @app.post("/info")
