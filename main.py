@@ -101,7 +101,7 @@ def get_fmt(quality: str, mtype: str) -> str:
     )
 
 def base_opts() -> dict:
-    """Base yt-dlp options — works for all platforms"""
+    """Base yt-dlp options - works for all platforms"""
     opts = {
         "quiet": True,
         "no_warnings": True,
@@ -166,7 +166,7 @@ def health():
         "temp_dir": str(TEMP_DIR),
     }
 
-# ── /info — Video info + formats ──────────────────────────────────
+# ── /info - Video info + formats ──────────────────────────────────
 @app.post("/info")
 async def get_info(request: Request):
     try:
@@ -257,7 +257,7 @@ async def get_info(request: Request):
         "audio_formats": afmts,
     })
 
-# ── /download — Native browser download ───────────────────────────
+# ── /download - Native browser download ───────────────────────────
 @app.post("/download")
 async def download_video(request: Request, bg: BackgroundTasks):
     try:
@@ -273,9 +273,9 @@ async def download_video(request: Request, bg: BackgroundTasks):
     log.info(f"Download request: url={url[:80]}, quality={qual}, type={mtype}, format={fmt}")
 
     if not url:
-        raise HTTPException(400, "URL is empty — please paste a valid video URL")
+        raise HTTPException(400, "URL is empty - please paste a valid video URL")
     if not url.startswith("http"):
-        raise HTTPException(400, f"Invalid URL: '{url[:50]}' — must start with http")
+        raise HTTPException(400, f"Invalid URL: '{url[:50]}' - must start with http")
 
     fid = str(uuid.uuid4())[:8]
     tpl = str(TEMP_DIR / fid) + ".%(ext)s"
@@ -331,7 +331,7 @@ async def download_video(request: Request, bg: BackgroundTasks):
 
     dl = find_file(fid)
     if not dl or not dl.exists():
-        raise HTTPException(500, "Download failed — file not found")
+        raise HTTPException(500, "Download failed - file not found")
 
     fn = safe_filename(info.get("title", "video"), ext)
     bg.add_task(clean_old)
@@ -350,7 +350,7 @@ async def download_video(request: Request, bg: BackgroundTasks):
         }
     )
 
-# ── /clip — Trim & download clip ──────────────────────────────────
+# ── /clip - Trim & download clip ──────────────────────────────────
 @app.post("/clip")
 async def download_clip(request: Request, bg: BackgroundTasks):
     try:
